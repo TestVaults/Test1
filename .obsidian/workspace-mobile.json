@@ -34,9 +34,23 @@
               "icon": "lucide-file",
               "title": "Let’s see if this works"
             }
+          },
+          {
+            "id": "db3b5bf31e4f9030",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Another new note.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Another new note"
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -127,7 +141,7 @@
         "state": {
           "type": "backlink",
           "state": {
-            "file": "Let’s see if this works.md",
+            "file": "Another new note.md",
             "collapseAll": false,
             "extraContext": false,
             "sortOrder": "alphabetical",
@@ -146,7 +160,7 @@
         "state": {
           "type": "outgoing-link",
           "state": {
-            "file": "Let’s see if this works.md",
+            "file": "Another new note.md",
             "linksCollapsed": false,
             "unlinkedCollapsed": true
           },
@@ -160,7 +174,7 @@
         "state": {
           "type": "outline",
           "state": {
-            "file": "Let’s see if this works.md",
+            "file": "Another new note.md",
             "followCursor": false,
             "showSearch": false,
             "searchQuery": ""
@@ -185,8 +199,9 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "5bfa1f5ef5b5fc6e",
+  "active": "db3b5bf31e4f9030",
   "lastOpenFiles": [
+    "Another new note.md",
     "Let’s see if this works.md",
     "first note in this repo.md"
   ]
