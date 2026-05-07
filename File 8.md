@@ -1,1 +1,1 @@
-i like shoes
+I don’t like cheese

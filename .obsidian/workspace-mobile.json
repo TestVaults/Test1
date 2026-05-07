@@ -195,12 +195,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "File 10.md",
+                "file": "File 8.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "File 10"
+              "title": "File 8"
             }
           }
         ],
@@ -353,9 +353,9 @@
   },
   "active": "dc9350be9d4f589a",
   "lastOpenFiles": [
+    "File 9.md",
     "File 10.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
-    "File 9.md",
     "File 8.md",
     "first note in this repo.md",
     "File 7.md",
