@@ -149,6 +149,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "first note in this repo.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -158,7 +159,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for first note in this repo"
             }
           },
           {
@@ -251,6 +252,7 @@
   },
   "active": "e09ce9d6bb07b965",
   "lastOpenFiles": [
+    "Another new note.md",
     "Let’s see if this works.md",
     "first note in this repo.md"
   ]
