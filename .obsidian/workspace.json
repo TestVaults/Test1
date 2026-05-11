@@ -17,12 +17,12 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "File 9.md",
+                    "file": "File 10.md",
                     "mode": "source",
                     "source": false
                   },
                   "icon": "lucide-file",
-                  "title": "File 9"
+                  "title": "File 10"
                 }
               }
             ]
@@ -149,7 +149,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 9.md",
+                "file": "File 10.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -159,7 +159,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 9"
+              "title": "Backlinks for File 10"
             }
           },
           {
@@ -252,9 +252,10 @@
   },
   "active": "645c73bc40392c28",
   "lastOpenFiles": [
+    "File 9.md",
+    "File 10 (conflict).md",
     "File 10.md",
     "File 8.md",
-    "File 9.md",
     "Creating another new note.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
     "first note in this repo.md",
