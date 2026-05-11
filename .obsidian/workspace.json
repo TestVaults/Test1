@@ -24,8 +24,37 @@
                   "icon": "lucide-file",
                   "title": "File 10"
                 }
+              },
+              {
+                "id": "fb578dd4bad3e35a",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 10.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 10"
+                }
+              },
+              {
+                "id": "772eb2819caa41b4",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 10.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 10"
+                }
               }
-            ]
+            ],
+            "currentTab": 2
           },
           {
             "id": "5dfdadfc06cd39e5",
@@ -149,7 +178,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 10.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -159,7 +187,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 10"
+              "title": "Backlinks"
             }
           },
           {
@@ -250,11 +278,12 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "645c73bc40392c28",
+  "active": "c98e183538c10606",
   "lastOpenFiles": [
+    "conflict-files-obsidian-git.md",
+    "File 10.md",
     "File 9.md",
     "File 10 (conflict).md",
-    "File 10.md",
     "File 8.md",
     "Creating another new note.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
