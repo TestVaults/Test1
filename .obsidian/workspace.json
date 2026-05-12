@@ -45,12 +45,12 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "File 7.md",
+                    "file": "File 6.md",
                     "mode": "source",
                     "source": false
                   },
                   "icon": "lucide-file",
-                  "title": "File 7"
+                  "title": "File 6"
                 }
               }
             ],
@@ -178,7 +178,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 7.md",
+                "file": "File 6.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -188,7 +188,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 7"
+              "title": "Backlinks for File 6"
             }
           },
           {
@@ -281,6 +281,7 @@
   },
   "active": "772eb2819caa41b4",
   "lastOpenFiles": [
+    "File 7.md",
     "File 8 (conflict).md",
     "File 8.md",
     "conflict-files-obsidian-git.md",
@@ -290,7 +291,6 @@
     "Creating another new note.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
     "first note in this repo.md",
-    "File 7.md",
     "Test note.md",
     "File 6.md",
     "File 5.md",
