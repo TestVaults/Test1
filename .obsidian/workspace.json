@@ -59,12 +59,12 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "File 4.md",
+                    "file": "File 5.md",
                     "mode": "source",
                     "source": false
                   },
                   "icon": "lucide-file",
-                  "title": "File 4"
+                  "title": "File 5"
                 }
               }
             ],
@@ -192,7 +192,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 4.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -202,7 +201,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 4"
+              "title": "Backlinks"
             }
           },
           {
@@ -293,9 +292,13 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "b829e4961f3309af",
+  "active": "c98e183538c10606",
   "lastOpenFiles": [
+    "File 5.md",
+    "File 4.md",
     "File 3.md",
+    "Screenshot 2026-05-12 at 1.44.06 PM.png",
+    "Screenshot 2026-05-12 at 1.43.55 PM.png",
     "File 2.md",
     "File 9.md",
     "File 8.md",
@@ -311,8 +314,6 @@
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
     "first note in this repo.md",
     "Test note.md",
-    "File 5.md",
-    "File 4.md",
     "Another new note.md",
     "Let’s see if this works.md"
   ]
