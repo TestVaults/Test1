@@ -59,12 +59,12 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "File 3.md",
+                    "file": "File 4.md",
                     "mode": "source",
                     "source": false
                   },
                   "icon": "lucide-file",
-                  "title": "File 3"
+                  "title": "File 4"
                 }
               }
             ],
@@ -192,7 +192,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 3.md",
+                "file": "File 4.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -202,7 +202,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 3"
+              "title": "Backlinks for File 4"
             }
           },
           {
@@ -295,8 +295,8 @@
   },
   "active": "b829e4961f3309af",
   "lastOpenFiles": [
-    "File 2.md",
     "File 3.md",
+    "File 2.md",
     "File 9.md",
     "File 8.md",
     "File 7.md",
