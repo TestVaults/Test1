@@ -209,12 +209,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "File 5 (conflict).md",
+                "file": "File 8.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "File 5 (conflict)"
+              "title": "File 8"
             }
           }
         ],
@@ -369,8 +369,8 @@
   "lastOpenFiles": [
     "File 7.md",
     "File 6.md",
-    "File 5.md",
     "File 5 (conflict).md",
+    "File 5.md",
     "File 2 (conflict).md",
     "File 4 (conflict).md",
     "File 4.md",

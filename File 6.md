@@ -1,2 +1,2 @@
-today
+Yes
 Tomorrow is great
