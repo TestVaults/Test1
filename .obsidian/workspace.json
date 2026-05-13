@@ -55,12 +55,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "File 7.md",
+                "file": "File 6.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "File 7"
+              "title": "File 6"
             }
           }
         ],
@@ -137,7 +137,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "File 7.md",
+                "file": "File 6.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -147,7 +147,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for File 7"
+              "title": "Backlinks for File 6"
             }
           },
           {
@@ -238,12 +238,13 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "e09ce9d6bb07b965",
+  "active": "b829e4961f3309af",
   "lastOpenFiles": [
+    "File 7.md",
+    "File 8.md",
+    "File 6.md",
     "File 5 (conflict).md",
     "File 5.md",
-    "File 6.md",
-    "File 7.md",
     "File 4.md",
     "File 4 (conflict).md",
     "File 2 (conflict).md",
@@ -252,7 +253,6 @@
     "Screenshot 2026-05-12 at 1.44.06 PM.png",
     "Screenshot 2026-05-12 at 1.43.55 PM.png",
     "File 9.md",
-    "File 8.md",
     "File 11.md",
     "canadian_insurance_competitive_intelligence_2025.md",
     "File 8 (conflict).md",
