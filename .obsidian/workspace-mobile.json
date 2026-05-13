@@ -209,12 +209,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "File 6.md",
+                "file": "File 5 (conflict).md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "File 6"
+              "title": "File 5 (conflict)"
             }
           }
         ],
@@ -309,7 +309,7 @@
         "state": {
           "type": "backlink",
           "state": {
-            "file": "File 6.md",
+            "file": "File 5 (conflict).md",
             "collapseAll": false,
             "extraContext": false,
             "sortOrder": "alphabetical",
@@ -367,10 +367,10 @@
   },
   "active": "d0fc089bcf9e8509",
   "lastOpenFiles": [
+    "File 6.md",
     "File 5.md",
     "File 5 (conflict).md",
     "File 7.md",
-    "File 6.md",
     "File 2 (conflict).md",
     "File 4 (conflict).md",
     "File 4.md",
