@@ -1,0 +1,10 @@
+{
+  "id": "vaultsync-companion",
+  "name": "VaultSync",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Automatic interval sync for VaultSync — pushes and pulls your vault while you write.",
+  "author": "VaultSync",
+  "authorUrl": "https://vaultsync.app",
+  "isDesktopOnly": false
+}
