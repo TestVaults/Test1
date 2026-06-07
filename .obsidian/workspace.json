@@ -199,17 +199,17 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "first note in this repo.md",
+                "file": "File 7.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of first note in this repo"
+              "title": "Outline of File 7"
             }
           },
           {
-            "id": "e09ce9d6bb07b965",
+            "id": "b9f6798294f2b777",
             "type": "leaf",
             "state": {
               "type": "git-view",
@@ -238,7 +238,7 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "e09ce9d6bb07b965",
+  "active": "3441c56bfa193911",
   "lastOpenFiles": [
     "File 6 (conflict).md",
     "File 8.md",
