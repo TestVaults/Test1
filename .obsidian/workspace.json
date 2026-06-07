@@ -4,67 +4,136 @@
     "type": "split",
     "children": [
       {
-        "id": "6853b980321a0e07",
-        "type": "tabs",
+        "id": "5e81e60fb52a6e1f",
+        "type": "split",
         "children": [
           {
-            "id": "645c73bc40392c28",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "File 10.md",
-                "mode": "source",
-                "source": false
+            "id": "6853b980321a0e07",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "645c73bc40392c28",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 10.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 10"
+                }
               },
-              "icon": "lucide-file",
-              "title": "File 10"
-            }
+              {
+                "id": "fb578dd4bad3e35a",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 10.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 10"
+                }
+              },
+              {
+                "id": "772eb2819caa41b4",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 6.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 6"
+                }
+              },
+              {
+                "id": "b829e4961f3309af",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "File 9.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "File 9"
+                }
+              },
+              {
+                "id": "4cdca8229ea91cf8",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "conflict-files-obsidian-git.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "conflict-files-obsidian-git"
+                }
+              }
+            ],
+            "currentTab": 4
           },
           {
-            "id": "fb578dd4bad3e35a",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "File 10.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "File 10"
-            }
-          },
-          {
-            "id": "772eb2819caa41b4",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "File 6.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "File 6"
-            }
-          },
-          {
-            "id": "b829e4961f3309af",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "File 9.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "File 9"
-            }
+            "id": "9841a98c8d1fb0c1",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "cdda135dd2d9c722",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "terminal:terminal",
+                  "state": {
+                    "terminal:terminal": {
+                      "cwd": "/Users/elo2023/Documents/test-repo/Test1",
+                      "focus": false,
+                      "profile": {
+                        "args": [
+                          "--login"
+                        ],
+                        "executable": "/bin/zsh",
+                        "followTheme": true,
+                        "name": "",
+                        "platforms": {
+                          "darwin": true
+                        },
+                        "pythonExecutable": "python3",
+                        "restoreHistory": false,
+                        "rightClickAction": "copyPaste",
+                        "successExitCodes": [
+                          "0",
+                          "SIGINT",
+                          "SIGTERM"
+                        ],
+                        "terminalOptions": {
+                          "documentOverride": null
+                        },
+                        "type": "integrated",
+                        "useWin32Conhost": true
+                      },
+                      "serial": null
+                    }
+                  },
+                  "pinned": true,
+                  "icon": "terminal",
+                  "title": "Terminal: ⠼ Test1"
+                }
+              }
+            ]
           }
         ],
-        "currentTab": 3
+        "direction": "horizontal"
       }
     ],
     "direction": "vertical"
@@ -199,13 +268,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "File 9.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of File 9"
+              "title": "Outline"
             }
           },
           {
@@ -238,8 +306,10 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "b829e4961f3309af",
+  "active": "cdda135dd2d9c722",
   "lastOpenFiles": [
+    "conflict-files-obsidian-git.md",
+    "File 9.md",
     "File 7.md",
     "File 6 (conflict).md",
     "File 8.md",
@@ -253,11 +323,9 @@
     "File 2.md",
     "Screenshot 2026-05-12 at 1.44.06 PM.png",
     "Screenshot 2026-05-12 at 1.43.55 PM.png",
-    "File 9.md",
     "File 11.md",
     "canadian_insurance_competitive_intelligence_2025.md",
     "File 8 (conflict).md",
-    "conflict-files-obsidian-git.md",
     "File 10.md",
     "File 10 (conflict).md",
     "Creating another new note.md",
