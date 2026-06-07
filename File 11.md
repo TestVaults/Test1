@@ -1,1 +1,2 @@
-Let’s try a conflict
+Let’s try a conflict 
+This will be a conflict test

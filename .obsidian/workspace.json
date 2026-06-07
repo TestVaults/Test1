@@ -59,12 +59,12 @@
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "File 2 (conflict) (conflict).md",
+                    "file": "File 11.md",
                     "mode": "source",
                     "source": false
                   },
                   "icon": "lucide-file",
-                  "title": "File 2 (conflict) (conflict)"
+                  "title": "File 11"
                 }
               }
             ],
@@ -306,8 +306,9 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "620b981896582bac",
+  "active": "b829e4961f3309af",
   "lastOpenFiles": [
+    "File 8.md",
     "File 2 (conflict) (conflict).md",
     "File 2 (conflict).md",
     "File 2.md",
@@ -316,7 +317,6 @@
     "File 9.md",
     "File 7.md",
     "File 6 (conflict).md",
-    "File 8.md",
     "File 6.md",
     "File 5.md",
     "File 4.md",
