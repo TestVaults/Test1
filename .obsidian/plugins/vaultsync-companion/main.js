@@ -274,7 +274,9 @@ var SyncEngine = class {
   }
   // ---------- GitHub API helpers ----------------------------------------------
   async ghFetch(method, path, token, body) {
-    const res = await fetch(`${GH_API}${path}`, {
+    var _a;
+    const res = await (0, import_obsidian.requestUrl)({
+      url: `${GH_API}${path}`,
       method,
       headers: {
         Authorization: `token ${token}`,
@@ -282,23 +284,25 @@ var SyncEngine = class {
         "Cache-Control": "no-cache",
         ...body ? { "Content-Type": "application/json" } : {}
       },
-      body: body ? JSON.stringify(body) : void 0
+      body: body ? JSON.stringify(body) : void 0,
+      throw: false
     });
-    if (!res.ok) {
-      const msg = await res.text().catch(() => "");
+    if (res.status < 200 || res.status >= 300) {
       if (res.status === 401 || res.status === 403)
         throw new Error("GitHub authentication failed. Check your token in VaultSync plugin settings.");
-      throw new Error(`GitHub API ${res.status}: ${msg.slice(0, 200)}`);
+      throw new Error(`GitHub API ${res.status}: ${((_a = res.text) != null ? _a : "").slice(0, 200)}`);
     }
-    return res.json();
+    return res.json;
   }
   async downloadRaw(owner, repo, ref, path, token) {
-    const res = await fetch(`${GH_RAW}/${owner}/${repo}/${ref}/${encodeURIComponent(path)}`, {
-      headers: { Authorization: `token ${token}` }
+    const res = await (0, import_obsidian.requestUrl)({
+      url: `${GH_RAW}/${owner}/${repo}/${ref}/${encodeURIComponent(path)}`,
+      headers: { Authorization: `token ${token}` },
+      throw: false
     });
-    if (!res.ok)
+    if (res.status < 200 || res.status >= 300)
       throw new Error(`Download failed for ${path}: HTTP ${res.status}`);
-    return res.arrayBuffer();
+    return res.arrayBuffer;
   }
   // ---------- Misc ------------------------------------------------------------
   async context() {
