@@ -55,12 +55,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "File 7.md",
+                "file": "File 9.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "File 7"
+              "title": "File 9"
             }
           }
         ],
@@ -199,13 +199,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "File 7.md",
+                "file": "File 9.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of File 7"
+              "title": "Outline of File 9"
             }
           },
           {
@@ -238,11 +238,11 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "3441c56bfa193911",
+  "active": "b829e4961f3309af",
   "lastOpenFiles": [
+    "File 7.md",
     "File 6 (conflict).md",
     "File 8.md",
-    "File 7.md",
     "File 6.md",
     "File 3.md",
     "File 5.md",
