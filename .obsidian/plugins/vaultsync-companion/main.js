@@ -274,7 +274,7 @@ var SyncEngine = class {
   }
   // ---------- GitHub API helpers ----------------------------------------------
   async ghFetch(method, path, token, body) {
-    var _a;
+    var _a, _b;
     const res = await (0, import_obsidian.requestUrl)({
       url: `${GH_API}${path}`,
       method,
@@ -290,7 +290,20 @@ var SyncEngine = class {
     if (res.status < 200 || res.status >= 300) {
       if (res.status === 401 || res.status === 403)
         throw new Error("GitHub authentication failed. Check your token in VaultSync plugin settings.");
-      throw new Error(`GitHub API ${res.status}: ${((_a = res.text) != null ? _a : "").slice(0, 200)}`);
+      if (res.status === 422) {
+        try {
+          const json = res.json;
+          if ((_a = json == null ? void 0 : json.message) == null ? void 0 : _a.includes("Secret detected")) {
+            throw new Error(
+              "GitHub blocked this push: a secret (like a token or password) was detected in one of your notes. Find and remove it from the file, then sync again."
+            );
+          }
+        } catch (e) {
+          if (e.message.startsWith("GitHub blocked"))
+            throw e;
+        }
+      }
+      throw new Error(`GitHub API ${res.status}: ${((_b = res.text) != null ? _b : "").slice(0, 200)}`);
     }
     return res.json;
   }
@@ -338,16 +351,19 @@ var SyncEngine = class {
   notify(msg) {
     new import_obsidian.Notice(msg, 6e3);
   }
-  notifyConflicts(paths) {
+  async notifyConflicts(paths) {
+    var _a;
     const count = paths.length;
+    const config = await this.readConfig();
+    const vaultId = (_a = config == null ? void 0 : config.vaultId) != null ? _a : this.app.vault.getName();
     const n = new import_obsidian.Notice(
       `VaultSync: ${count} conflict${count !== 1 ? "s" : ""} detected. Open VaultSync to resolve.`,
       0
     );
     n.noticeEl.addEventListener("click", () => {
-      var _a, _b, _c;
-      const url = `vaultsync://conflicts?vaultId=${encodeURIComponent(this.app.vault.getName())}`;
-      (_c = (_b = (_a = this.app).openUrl) == null ? void 0 : _b.call(_a, url)) != null ? _c : window.open(url);
+      var _a2, _b, _c;
+      const url = `vaultsync://conflicts?vaultId=${encodeURIComponent(vaultId)}`;
+      (_c = (_b = (_a2 = this.app).openUrl) == null ? void 0 : _b.call(_a2, url)) != null ? _c : window.open(url);
       n.hide();
     });
   }
