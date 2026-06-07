@@ -63,39 +63,45 @@ var SyncEngine = class {
   async pull() {
     const ctx = await this.context();
     if (!ctx)
-      return;
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     try {
-      await this.doPull(ctx);
+      const { pulled, conflicts } = await this.doPull(ctx);
+      return { pushed: 0, pulled, conflicts: conflicts.length };
     } catch (e) {
       this.notify(`VaultSync pull failed: ${e.message}`);
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     }
   }
   async push() {
     const ctx = await this.context();
     if (!ctx)
-      return;
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     try {
-      await this.doPush(ctx);
+      const pushed = await this.doPush(ctx);
+      return { pushed, pulled: 0, conflicts: 0 };
     } catch (e) {
       this.notify(`VaultSync push failed: ${e.message}`);
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     }
   }
   async sync() {
     if (this.syncing)
-      return;
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     this.syncing = true;
     const ctx = await this.context();
     if (!ctx) {
       this.syncing = false;
-      return;
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     }
     try {
-      const conflicts = await this.doPull(ctx);
-      if (conflicts.length === 0) {
-        await this.doPush(ctx);
-      }
+      const { pulled, conflicts } = await this.doPull(ctx);
+      let pushed = 0;
+      if (conflicts.length === 0)
+        pushed = await this.doPush(ctx);
+      return { pushed, pulled, conflicts: conflicts.length };
     } catch (e) {
       this.notify(`VaultSync sync failed: ${e.message}`);
+      return { pushed: 0, pulled: 0, conflicts: 0 };
     } finally {
       this.syncing = false;
     }
@@ -109,10 +115,10 @@ var SyncEngine = class {
     if (!this.manifest) {
       this.manifest = await this.bootstrap(config, token, remoteSha);
       this.onManifestChange(this.manifest);
-      return [];
+      return { pulled: 0, conflicts: [] };
     }
     if (remoteSha === this.manifest.headSha)
-      return [];
+      return { pulled: 0, conflicts: [] };
     const remoteCommit = await this.ghGet(`/repos/${owner}/${repo}/git/commits/${remoteSha}`, token);
     const remoteTree = await this.ghGet(`/repos/${owner}/${repo}/git/trees/${remoteCommit.tree.sha}?recursive=1`, token);
     const remoteBlobs = remoteTree.tree.filter(
@@ -135,6 +141,7 @@ var SyncEngine = class {
     }
     const conflicts = [];
     const updatedFiles = { ...this.manifest.files };
+    let pulled = 0;
     for (const entry of remoteChanged) {
       if (localMod.has(entry.path)) {
         conflicts.push(entry.path);
@@ -143,12 +150,14 @@ var SyncEngine = class {
       const content = await this.downloadRaw(owner, repo, remoteSha, entry.path, token);
       await this.writeVaultFile(entry.path, content);
       updatedFiles[entry.path] = { blobSha: entry.sha, contentHash: hashContent(content) };
+      pulled++;
     }
     for (const path of remoteDeleted) {
       if (localMod.has(path))
         continue;
       await this.deleteVaultFile(path);
       delete updatedFiles[path];
+      pulled++;
     }
     const existingConflicts = new Set(this.manifest.conflicts);
     const allConflicts = [.../* @__PURE__ */ new Set([...existingConflicts, ...conflicts])];
@@ -156,14 +165,14 @@ var SyncEngine = class {
     this.onManifestChange(this.manifest);
     if (conflicts.length > 0)
       this.notifyConflicts(conflicts);
-    return allConflicts;
+    return { pulled, conflicts: allConflicts };
   }
   // ---------- Core push ------------------------------------------------------
   async doPush(ctx, retried = false) {
     const { config, token } = ctx;
     const { owner, repo, branch } = config;
     if (!this.manifest)
-      return;
+      return 0;
     const unresolved = new Set(this.manifest.conflicts);
     const changed = [];
     const changedPaths = [];
@@ -181,13 +190,12 @@ var SyncEngine = class {
     const localPaths = new Set(this.vaultFiles().map((f) => f.path));
     const deleted = Object.keys(this.manifest.files).filter((p) => !localPaths.has(p) && !unresolved.has(p));
     if (changed.length === 0 && deleted.length === 0)
-      return;
+      return 0;
     const liveRef = await this.ghGet(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token);
     const liveHeadSha = liveRef.object.sha;
     if (liveHeadSha !== this.manifest.headSha && !retried) {
       await this.doPull(ctx);
-      await this.doPush(ctx, true);
-      return;
+      return await this.doPush(ctx, true);
     }
     const newBlobs = [];
     for (const { path, content } of changed) {
@@ -222,8 +230,7 @@ var SyncEngine = class {
     } catch (e) {
       if (!retried && e.message.includes("422")) {
         await this.doPull(ctx);
-        await this.doPush(ctx, true);
-        return;
+        return await this.doPush(ctx, true);
       }
       throw e;
     }
@@ -235,6 +242,7 @@ var SyncEngine = class {
       delete updatedFiles[path];
     this.manifest = { ...this.manifest, headSha: newCommit.sha, files: updatedFiles };
     this.onManifestChange(this.manifest);
+    return changed.length + deleted.length;
   }
   // ---------- Bootstrap (first run) ------------------------------------------
   async bootstrap(config, token, headSha) {
@@ -373,9 +381,11 @@ var SyncEngine = class {
 var import_obsidian2 = require("obsidian");
 var DEFAULT_SETTINGS = {
   githubToken: "",
-  syncInterval: 15,
+  syncInterval: 0,
   syncOnOpen: true,
-  syncOnClose: true
+  syncOnClose: true,
+  showSyncNotifications: true,
+  syncOnSave: true
 };
 var VaultSyncSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
@@ -385,17 +395,15 @@ var VaultSyncSettingTab = class extends import_obsidian2.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.createEl("p", {
+      text: "Mobile companion for the VaultSync iOS app. Automatically syncs your vault with GitHub while you write. Clone repos and resolve conflicts in VaultSync.",
+      cls: "setting-item-description"
+    });
     new import_obsidian2.Setting(containerEl).setName("GitHub token").setDesc("Personal access token with repo read/write scope. Same token used in VaultSync.").addText(
       (text) => text.setPlaceholder("ghp_...").setValue(this.plugin.settings.githubToken).onChange(async (value) => {
         this.plugin.settings.githubToken = value.trim();
         await this.plugin.saveSettings();
       }).inputEl.setAttribute("type", "password")
-    );
-    new import_obsidian2.Setting(containerEl).setName("Sync interval").setDesc("How often to push and pull while Obsidian is open.").addDropdown(
-      (drop) => drop.addOption("0", "Disabled").addOption("1", "Every 1 minute").addOption("5", "Every 5 minutes").addOption("15", "Every 15 minutes").addOption("30", "Every 30 minutes").addOption("60", "Every hour").setValue(String(this.plugin.settings.syncInterval)).onChange(async (value) => {
-        this.plugin.settings.syncInterval = parseInt(value);
-        await this.plugin.saveSettings();
-      })
     );
     new import_obsidian2.Setting(containerEl).setName("Sync on open").setDesc("Pull latest changes when Obsidian opens.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.syncOnOpen).onChange(async (value) => {
@@ -409,13 +417,40 @@ var VaultSyncSettingTab = class extends import_obsidian2.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
+    new import_obsidian2.Setting(containerEl).setName("Sync on save").setDesc("Push 5 seconds after you stop writing. On mobile, this is the most responsive sync option \u2014 no waiting for a timer.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.syncOnSave).onChange(async (value) => {
+        this.plugin.settings.syncOnSave = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian2.Setting(containerEl).setName("Show sync notifications").setDesc("Show a notification after each sync with a summary of what changed.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.showSyncNotifications).onChange(async (value) => {
+        this.plugin.settings.showSyncNotifications = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian2.Setting(containerEl).setName("Sync interval").setDesc("Periodically push and pull on a timer. Not needed if sync on save is on.").addDropdown(
+      (drop) => drop.addOption("0", "Disabled").addOption("1", "Every 1 minute").addOption("2", "Every 2 minutes").addOption("5", "Every 5 minutes").setValue(String(this.plugin.settings.syncInterval)).onChange(async (value) => {
+        this.plugin.settings.syncInterval = parseInt(value);
+        await this.plugin.saveSettings();
+      })
+    );
     new import_obsidian2.Setting(containerEl).setName("Sync now").setDesc("Manually trigger a full push and pull.").addButton(
       (btn) => btn.setButtonText("Sync").onClick(async () => {
         btn.setButtonText("Syncing\u2026");
         btn.setDisabled(true);
-        await this.plugin.engine.sync();
+        const result = await this.plugin.engine.sync();
         btn.setButtonText("Sync");
         btn.setDisabled(false);
+        const parts = [];
+        if (result.pushed > 0)
+          parts.push(`${result.pushed} pushed`);
+        if (result.pulled > 0)
+          parts.push(`${result.pulled} pulled`);
+        if (result.conflicts > 0)
+          parts.push(`${result.conflicts} conflict${result.conflicts !== 1 ? "s" : ""} \u2014 open VaultSync to resolve`);
+        const msg = parts.length > 0 ? parts.join(", ") : "Already up to date";
+        this.plugin.showNotice(`VaultSync: ${msg}`);
       })
     );
   }
@@ -427,6 +462,7 @@ var VaultSyncPlugin = class extends import_obsidian3.Plugin {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
     this.intervalHandle = null;
+    this.saveDebounce = null;
   }
   async onload() {
     var _a, _b, _c;
@@ -442,26 +478,23 @@ var VaultSyncPlugin = class extends import_obsidian3.Plugin {
     this.addCommand({
       id: "sync-now",
       name: "Sync now",
-      callback: () => this.engine.sync()
+      callback: async () => {
+        const result = await this.engine.sync();
+        this.showNotice(this.formatResult(result));
+      }
     });
     if (this.settings.syncOnOpen) {
       this.app.workspace.onLayoutReady(() => this.engine.pull());
     }
     this.scheduleInterval();
-    if (this.settings.syncOnClose) {
-      const handleVisibility = () => {
-        if (document.visibilityState === "hidden")
-          this.engine.push();
-      };
-      document.addEventListener("visibilitychange", handleVisibility);
-      this.register(() => document.removeEventListener("visibilitychange", handleVisibility));
-    }
+    this.registerCloseHandler();
+    this.registerSaveHandler();
   }
   onunload() {
-    if (this.intervalHandle !== null) {
+    if (this.intervalHandle !== null)
       window.clearInterval(this.intervalHandle);
-      this.intervalHandle = null;
-    }
+    if (this.saveDebounce !== null)
+      window.clearTimeout(this.saveDebounce);
   }
   scheduleInterval() {
     if (this.intervalHandle !== null) {
@@ -469,11 +502,49 @@ var VaultSyncPlugin = class extends import_obsidian3.Plugin {
       this.intervalHandle = null;
     }
     if (this.settings.syncInterval > 0) {
-      this.intervalHandle = window.setInterval(
-        () => this.engine.sync(),
-        this.settings.syncInterval * 60 * 1e3
-      );
+      this.intervalHandle = window.setInterval(async () => {
+        const result = await this.engine.sync();
+        if (this.settings.showSyncNotifications) {
+          this.showNotice(this.formatResult(result));
+        }
+      }, this.settings.syncInterval * 60 * 1e3);
     }
+  }
+  registerCloseHandler() {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden" && this.settings.syncOnClose) {
+        this.engine.push();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    this.register(() => document.removeEventListener("visibilitychange", handleVisibility));
+  }
+  registerSaveHandler() {
+    this.registerEvent(
+      this.app.vault.on("modify", () => {
+        if (!this.settings.syncOnSave)
+          return;
+        if (this.saveDebounce !== null)
+          window.clearTimeout(this.saveDebounce);
+        this.saveDebounce = window.setTimeout(() => {
+          this.saveDebounce = null;
+          this.engine.push();
+        }, 5e3);
+      })
+    );
+  }
+  showNotice(msg) {
+    new import_obsidian3.Notice(msg, 4e3);
+  }
+  formatResult(result) {
+    const parts = [];
+    if (result.pushed > 0)
+      parts.push(`${result.pushed} pushed`);
+    if (result.pulled > 0)
+      parts.push(`${result.pulled} pulled`);
+    if (result.conflicts > 0)
+      parts.push(`${result.conflicts} conflict${result.conflicts !== 1 ? "s" : ""}`);
+    return `VaultSync: ${parts.length > 0 ? parts.join(", ") : "up to date"}`;
   }
   async saveSettings() {
     this.engine.updateSettings(this.settings);

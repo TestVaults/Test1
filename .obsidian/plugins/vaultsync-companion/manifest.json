@@ -3,7 +3,7 @@
   "name": "VaultSync",
   "version": "1.0.0",
   "minAppVersion": "1.4.0",
-  "description": "Automatic interval sync for VaultSync — pushes and pulls your vault while you write.",
+  "description": "Mobile companion for VaultSync. Automatically syncs your vault with GitHub while you write on iOS.",
   "author": "VaultSync",
   "authorUrl": "https://vaultsync.app",
   "isDesktopOnly": false
