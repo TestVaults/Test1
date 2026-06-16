@@ -130,10 +130,56 @@
                   },
                   "pinned": true,
                   "icon": "terminal",
-                  "title": "Terminal: Test1"
+                  "title": "Terminal: zsh"
+                }
+              },
+              {
+                "id": "5d4b9389640f76a4",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "terminal:terminal",
+                  "state": {
+                    "terminal:terminal": {
+                      "cwd": "/Users/elo2023/Documents/test-repo/Test1",
+                      "focus": false,
+                      "profile": {
+                        "args": [
+                          "--login"
+                        ],
+                        "environment": [],
+                        "executable": "/bin/zsh",
+                        "followTheme": true,
+                        "name": "",
+                        "platforms": {
+                          "darwin": true
+                        },
+                        "pythonExecutable": "python3",
+                        "restoreHistory": false,
+                        "rightClickAction": "copyPaste",
+                        "successExitCodes": [
+                          "0",
+                          "SIGINT",
+                          "SIGTERM"
+                        ],
+                        "terminalOptions": {
+                          "documentOverride": null
+                        },
+                        "type": "integrated",
+                        "useWin32Conhost": true
+                      },
+                      "profileSourceId": "darwinIntegratedDefault",
+                      "serial": null,
+                      "userTitle": ""
+                    }
+                  },
+                  "pinned": true,
+                  "icon": "terminal",
+                  "title": "Terminal: zsh"
                 }
               }
-            ]
+            ],
+            "currentTab": 1
           }
         ],
         "direction": "horizontal"
@@ -291,7 +337,7 @@
             }
           },
           {
-            "id": "221f3db59f3aa3a9",
+            "id": "344c35aeddf7e317",
             "type": "leaf",
             "state": {
               "type": "git-view",
@@ -316,16 +362,16 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "bases:Create new base": false,
-      "obsidian-git:Open Git source control": false,
-      "terminal:Open terminal": false
+      "terminal:Open terminal": false,
+      "obsidian-git:Open Git source control": false
     }
   },
-  "active": "4dc022288eac031b",
+  "active": "5d4b9389640f76a4",
   "lastOpenFiles": [
+    "A new note for today.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
     "conflict-files-obsidian-git.md",
     "File 11.md",
-    "A new note for today.md",
     "File 8.md",
     "File 2 (conflict) (conflict).md",
     "File 2 (conflict).md",

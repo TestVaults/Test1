@@ -41,8 +41,8 @@ function toBase64(buf) {
     s += String.fromCharCode(bytes[i]);
   return btoa(s);
 }
-var SKIP = [".obsidian/", ".vaultsync/"];
-var skip = (path) => SKIP.some((p) => path.startsWith(p));
+var OBSIDIAN_ALLOWED = (path) => path === ".obsidian/appearance.json" || path.startsWith(".obsidian/themes/") || path.startsWith(".obsidian/snippets/");
+var skip = (path) => path.startsWith(".vaultsync/") || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path);
 var GH_API = "https://api.github.com";
 var GH_RAW = "https://raw.githubusercontent.com";
 var SyncEngine = class {
