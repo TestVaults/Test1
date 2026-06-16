@@ -175,7 +175,7 @@
                   },
                   "pinned": true,
                   "icon": "terminal",
-                  "title": "Terminal: zsh"
+                  "title": "Terminal: Test1"
                 }
               }
             ],
@@ -368,6 +368,7 @@
   },
   "active": "5d4b9389640f76a4",
   "lastOpenFiles": [
+    "New note.md",
     "A new note for today.md",
     "compass_artifact_wf-61e5e5f3-6908-4c44-883e-d66302a88af3_text_markdown.md",
     "conflict-files-obsidian-git.md",
@@ -394,7 +395,6 @@
     "Creating another new note.md",
     "first note in this repo.md",
     "Test note.md",
-    "Another new note.md",
-    "Let’s see if this works.md"
+    "Another new note.md"
   ]
 }
