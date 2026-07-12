@@ -1,0 +1,17 @@
+{
+  "pythonPath": "/Users/elo2023/.local/pipx/venvs/markitdown/bin/python",
+  "enablePlugins": false,
+  "pluginArgs": [],
+  "docintelEndpoint": "",
+  "outputPath": "markitdown-output",
+  "imageExtractionEnabled": true,
+  "imageSubfolderTemplate": "{filename}-images",
+  "enableBatchProgress": true,
+  "enableContextMenu": true,
+  "enableRecursiveConversion": true,
+  "outputFilenameTemplate": "{filename}",
+  "enableDragDrop": true,
+  "enableAutoFrontmatter": true,
+  "autoTags": "",
+  "conversionHistory": []
+}
