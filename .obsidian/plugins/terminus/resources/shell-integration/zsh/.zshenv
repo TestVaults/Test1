@@ -1,4 +1,4 @@
-# review-terminal shell integration (zsh).
+# Terminus shell integration (zsh).
 #
 # We hijack ZDOTDIR so zsh looks here for .zshenv, which is the ONLY rc file
 # zsh unconditionally reads (before it knows if it's a login/interactive
@@ -6,12 +6,12 @@
 # so zsh's subsequent lookups (.zprofile, .zshrc, .zlogin) go straight to
 # the user's actual files -- we never need fake versions of those.
 
-if [[ -n "${REVIEW_TERMINAL_ORIG_ZDOTDIR:-}" ]]; then
-  export ZDOTDIR="$REVIEW_TERMINAL_ORIG_ZDOTDIR"
+if [[ -n "${TERMINUS_ORIG_ZDOTDIR:-}" ]]; then
+  export ZDOTDIR="$TERMINUS_ORIG_ZDOTDIR"
 else
   unset ZDOTDIR
 fi
-unset REVIEW_TERMINAL_ORIG_ZDOTDIR
+unset TERMINUS_ORIG_ZDOTDIR
 
 # We hijacked the one .zshenv lookup zsh would have made -- it won't look
 # for it again, so source the user's real one manually now.

@@ -1,12 +1,12 @@
-# review-terminal shell integration (bash).
+# Terminus shell integration (bash).
 #
 # We hijack HOME so bash (as a login shell, per pty_helper.py's -l flag)
 # looks here for .bash_profile. This file immediately restores HOME to the
 # user's real value, then chain-loads whichever of .bash_profile/.bash_login
 # /.profile the user actually has, matching bash's own normal lookup order.
 
-export HOME="${REVIEW_TERMINAL_ORIG_HOME:-$HOME}"
-unset REVIEW_TERMINAL_ORIG_HOME
+export HOME="${TERMINUS_ORIG_HOME:-$HOME}"
+unset TERMINUS_ORIG_HOME
 
 # bash computes HISTFILE's default (~/.bash_history) from $HOME at its own
 # startup, before this script ever runs -- using the fake HOME we're about
