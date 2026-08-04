@@ -18,6 +18,19 @@
   padding: 4px;
 }
 
+/* xterm.css's own .xterm-char-measure-element (its hidden cell-size probe)
+   sets line-height: normal, which pulls in whatever leading the active
+   monospace font's metrics carry above its em-box. For most text that
+   leading is invisible, but block-drawing glyphs (box art, spinners) are
+   drawn edge-to-edge, so any inflated row height shows up as a visible gap
+   between rows -- e.g. between rows of a solid block-art logo. This rule
+   loads after xterm.css in the concatenated stylesheet (see
+   esbuild.config.mjs's buildStylesheet), so !important is needed to win the
+   later same-specificity rule, not to fight a theme. */
+.xterm-char-measure-element {
+  line-height: 1 !important;
+}
+
 .terminus-failure-badge {
   color: var(--text-error, #e05252);
   cursor: pointer;
@@ -141,11 +154,12 @@
 
 .terminus-diff-gutter-num {
   flex: 0 0 auto;
-  width: 2.5em;
+  min-width: 2.5em;
   text-align: right;
   padding-right: 8px;
   color: var(--text-faint);
   user-select: none;
+  white-space: nowrap;
 }
 
 .terminus-diff-marker {
@@ -198,7 +212,7 @@
 
 /* Pending Changes sidebar panel -- Design 3a ("Scoped groups, one primary
    CTA") from the approved Diff Panel Redesign. This palette is hardcoded
-   (not built from Obsidian's --background-*/--text-* theme variables) so
+   (not built from Obsidian's --background-* / --text-* theme variables) so
    the panel matches the design exactly regardless of the user's active
    Obsidian theme -- a deliberate exception to the rest of the plugin,
    which stays theme-adaptive. */
@@ -225,9 +239,17 @@
    specificity down to just the bare "button" tag so variant classes always
    win. */
 :where(.terminus-pending-view) button {
-  all: unset;
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  outline: inherit;
+  text-align: inherit;
   box-sizing: border-box;
   cursor: pointer;
+  font: inherit;
   font-family: inherit;
   /* Obsidian's own theme applies elevation to bare buttons (box-shadow
      and/or a gradient background-image for a beveled look). "all: unset"
@@ -553,6 +575,15 @@
   color: #a8a8ad;
 }
 
+/* Pulls Split Diff in closer to Open -- the container's flex `gap` (see
+   .terminus-pending-row-actions) evenly spaces all four action buttons,
+   which read as too far apart for this pair specifically; a negative
+   margin-left here only tightens the gap on this side, leaving the gap to
+   the ✕/✓ icon buttons on its other side untouched. */
+.terminus-pending-view .terminus-action-split-diff {
+  margin-left: -4px;
+}
+
 .terminus-pending-view .terminus-icon-btn {
   width: 26px;
   height: 26px;
@@ -670,10 +701,11 @@
 }
 
 .terminus-pending-view .terminus-diff-gutter-num {
-  width: 20px;
+  min-width: 20px;
   padding-right: 0;
   margin-right: 8px;
   color: #5a5a5e;
+  white-space: nowrap;
 }
 
 .terminus-pending-view .terminus-diff-line-add .terminus-diff-gutter-num {
@@ -872,9 +904,16 @@
    inline-diff-reject", so without :where() this reset was silently
    stripping the border/background right back off both buttons. */
 :where(.terminus-inline-diff-controls) button {
-  all: unset;
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  color: inherit;
+  outline: inherit;
+  text-align: inherit;
   box-sizing: border-box;
   cursor: pointer;
+  font: inherit;
   font-family: inherit;
   border-radius: 6px;
   padding: 6px 10px;
@@ -908,6 +947,142 @@
   background-color: rgba(220, 80, 80, 0.35);
   text-decoration: line-through;
   white-space: pre-wrap;
+}
+
+/* Split Diff view -- dedicated old|new side-by-side review, opened
+   alongside the inline editor overlay (not a replacement for it). Stays
+   theme-adaptive (var(--...)), unlike the hardcoded-dark Pending Changes
+   panel, since it opens in its own leaf/tab like a normal editor pane. */
+
+.terminus-diff-split-view {
+  padding: 0;
+}
+
+.terminus-split-diff-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.terminus-split-diff-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.terminus-split-diff-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminus-split-diff-colheader {
+  display: flex;
+  flex: 0 0 auto;
+  font-size: var(--font-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+  background-color: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.terminus-split-diff-colheader-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 12px;
+}
+
+.terminus-split-diff-colheader-cell:first-child {
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.terminus-split-diff-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+  padding-right: 16px;
+}
+
+.terminus-split-diff-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.terminus-split-diff-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  box-sizing: border-box;
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminus-split-diff-cell-old {
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.terminus-split-diff-cell-context {
+  color: var(--text-muted);
+}
+
+.terminus-split-diff-cell-add {
+  background-color: rgba(80, 200, 120, 0.1);
+}
+
+.terminus-split-diff-cell-remove {
+  background-color: rgba(220, 80, 80, 0.12);
+}
+
+/* No corresponding line on this side (e.g. a pure insertion has nothing to
+   pad the old column with) -- a faint stripe so the gap reads as "nothing
+   here" rather than looking like a rendering glitch. */
+.terminus-split-diff-cell-filler {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--background-modifier-border) 0,
+    var(--background-modifier-border) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+  opacity: 0.5;
+}
+
+.terminus-split-diff-truncate-divider {
+  display: flex;
+  justify-content: center;
+  padding: 3px 0;
+  background-color: var(--background-secondary);
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.terminus-split-diff-untruncate {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+  cursor: pointer;
+  padding: 2px 10px;
+}
+
+.terminus-split-diff-untruncate:hover {
+  color: var(--text-normal);
+  text-decoration: underline;
+}
+
+/* Per-hunk Accept/Reject bar -- reuses .terminus-inline-diff-controls and
+   its button classes directly (see editor/inlineDiff.ts) so it's visually
+   the same control as the inline editor overlay's, just laid out inline in
+   a scrollable panel instead of floating over live document text. */
+.terminus-split-diff-hunk-controls {
+  margin: 6px 0;
+  border-radius: 4px;
 }
 
 /**

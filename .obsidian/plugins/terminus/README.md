@@ -7,6 +7,16 @@ A real terminal inside Obsidian that never lets you lose the thread on what [Cla
 
 Edits land on disk immediately; you review what changed afterwards, with the option to revert.
 
+## Screenshots
+
+| Split Diff — per-hunk Accept/Reject |
+| --- |
+| ![Split Diff view](screenshots/diffpanel-splitdiff.png) |
+
+| Command help — Explain / Suggest a fix |
+| --- |
+| ![Command help popup](screenshots/command-help.png) |
+
 ## Features
 
 ### Terminal
@@ -30,6 +40,7 @@ Edits land on disk immediately; you review what changed afterwards, with the opt
 - **Git-aware baseline** — for a vault under version control, an extra "vs git HEAD" diff view alongside the since-last-edit one (purely informational).
 - **Backlink-breakage warnings** — flags when an edit removes a heading or block that other notes reference via `[[Note#Heading]]` or `[[Note#^block]]`.
 - **Inline in-editor diff** — click "Open" on a pending change to see the diff directly in the real note, with Accept/Reject controls right there.
+- **Split Diff view — per-hunk Accept/Reject** — click "Split Diff" on a pending change for a dedicated side-by-side (old | new) view with its own Accept/Reject bar on every individual changed block, so you can keep some edits and revert others within the same file instead of an all-or-nothing per-file decision. Not available for `NotebookEdit` changes, since their diff is a display-only approximation of the real file content and can't be safely spliced.
 - **Keyboard-driven review** — accept/reject the oldest pending change without touching the panel.
 
 ### Terminal help for beginners
@@ -88,7 +99,10 @@ The build bundles `src/main.ts` into `main.js` with esbuild, and regenerates `st
 | `src/settings.ts` | Settings tab (font size) + settings type/defaults |
 | `src/views/TerminalView.ts` | The terminal panel: xterm.js, PTY wiring, failure badges |
 | `src/views/PendingChangesView.ts` | The Pending Changes sidebar panel |
+| `src/views/DiffSplitView.ts` | The Split Diff view (one pending change, opened per-file) |
 | `src/diff/buildDiffLines.ts`, `renderDiff.ts` | Line-structured, word-emphasized diff model + gutter/minimap rendering |
+| `src/diff/hunks.ts` | Groups a diff into context runs and hunks with stable offsets — shared by the Split Diff renderer and per-hunk resolution |
+| `src/diff/renderSplitDiff.ts` | Renders the Split Diff view's side-by-side body and per-hunk controls |
 | `src/pty/PtyProcess.ts`, `shellDetect.ts`, `shellIntegration.ts` | Node-side PTY process wrapper, binary resolution, shell-integration env |
 | `src/terminal/CommandTracker.ts` | OSC 133 command-boundary/exit-code tracking |
 | `src/server/ReviewServer.ts`, `diff.ts` | Local hook-bridge HTTP server, diff computation |

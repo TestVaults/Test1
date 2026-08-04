@@ -10,3 +10,11 @@ bonjour
 Yes
 2026-07-11
 lol
+
+Honey never spoils, even after thousands of years. There are more possible chess games than atoms in the observable universe.
+
+Sea otters hold hands while sleeping so they don't drift apart. The shortest war in recorded history lasted about 38 minutes.
+
+A bolt of lightning is hotter than the surface of the sun. Cows have best friends and get stressed when separated from them.
+
+Polar bears have black skin under their white fur. The world's oldest known living tree is over 5,000 years old.

@@ -45,6 +45,7 @@ export function buildDiffLines(oldText: string, newText: string): DiffLine[] {
   let i = 0;
   while (i < parts.length) {
     const part = parts[i];
+    if (!part) break;
 
     if (!part.added && !part.removed) {
       pushWholeLines(part.value, " ", false);
@@ -52,13 +53,17 @@ export function buildDiffLines(oldText: string, newText: string): DiffLine[] {
       continue;
     }
 
-    if (part.removed && parts[i + 1]?.added) {
+    const nextPart = parts[i + 1];
+    if (part.removed && nextPart?.added) {
       const removedLines = splitLines(part.value);
-      const addedLines = splitLines(parts[i + 1].value);
+      const addedLines = splitLines(nextPart.value);
 
       if (removedLines.length === addedLines.length) {
         for (let k = 0; k < removedLines.length; k++) {
-          const wordParts = diffWordsWithSpace(removedLines[k]!, addedLines[k]!);
+          const removedLine = removedLines[k];
+          const addedLine = addedLines[k];
+          if (removedLine === undefined || addedLine === undefined) continue;
+          const wordParts = diffWordsWithSpace(removedLine, addedLine);
           lines.push({ lineNumber: lineNumber++, marker: "-", segments: buildSegments(wordParts, "removed") });
           lines.push({ lineNumber: lineNumber++, marker: "+", segments: buildSegments(wordParts, "added") });
         }
@@ -88,7 +93,7 @@ export function buildDiffLines(oldText: string, newText: string): DiffLine[] {
   return lines;
 }
 
-function buildSegments(
+export function buildSegments(
   wordParts: ReturnType<typeof diffWordsWithSpace>,
   side: "removed" | "added"
 ): DiffLineSegment[] {
@@ -108,8 +113,8 @@ function buildSegments(
 // diffLines' trailing split artifact: a value ending in "\n" produces a
 // phantom empty final segment when naively split -- drop it so line counts
 // match the visual line count.
-function splitLines(value: string): string[] {
+export function splitLines(value: string): string[] {
   const lines = value.split("\n");
-  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  if (lines[lines.length - 1] === "") lines.pop();
   return lines;
 }

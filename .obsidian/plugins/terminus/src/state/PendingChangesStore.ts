@@ -1,8 +1,9 @@
-import { EventEmitter } from "events";
-import * as fs from "fs/promises";
+import { TypedEmitter } from "../node/emitter";
+import { deleteFileIfExists, writeTextFile } from "terminus-node-bridge";
 import { PreToolUseHookPayload } from "../hooks/types";
 import { DiffResult } from "../server/diff";
 import type { BrokenBacklink } from "../backlinks/breakage";
+import { computeHunks } from "../diff/hunks";
 
 export interface PendingChange {
   /** Always the file's absolute path -- edits to the same file within one
@@ -42,6 +43,12 @@ interface PendingEntry {
 
 const MAX_HISTORY = 20;
 
+type PendingChangesStoreEvents = {
+  change: [];
+  recorded: [PendingChange];
+  resolved: [ResolvedChange];
+};
+
 /**
  * Plugin-wide list of changes Claude has already written to disk, awaiting
  * human review. The write already happened by the time an entry appears
@@ -50,7 +57,7 @@ const MAX_HISTORY = 20;
  * content (or deletes it, if the change created a new file). Resolved
  * changes move to a bounded history so either decision can be undone.
  */
-export class PendingChangesStore extends EventEmitter {
+export class PendingChangesStore extends TypedEmitter<PendingChangesStoreEvents> {
   private entries = new Map<string, PendingEntry>();
   private history: ResolvedChange[] = [];
   private historyIdCounter = 0;
@@ -156,12 +163,67 @@ export class PendingChangesStore extends EventEmitter {
     }
   }
 
+  /**
+   * Per-hunk accept/reject, used by the Split Diff view. `hunkIndex` must
+   * come from computeHunks(entry.diff.oldText, entry.diff.newText) computed
+   * fresh against the CURRENT diff -- resolving a hunk mutates oldText/
+   * newText (splicing the chosen text into both, at that hunk's spot),
+   * which shifts every later hunk's offsets, so indices from a previous
+   * render are not valid after any resolveHunk call.
+   *
+   * Not supported for NotebookEdit: its oldText/newText are a display-only
+   * approximation (see buildDiff in server/diff.ts), not the real file
+   * content, so splicing them and writing the result to disk would corrupt
+   * the notebook. The Split Diff entry point is hidden for those changes;
+   * this is a second line of defense.
+   */
+  async resolveHunk(id: string, hunkIndex: number, accepted: boolean): Promise<void> {
+    const entry = this.entries.get(id);
+    if (!entry) return;
+    if (entry.change.payload.tool_name === "NotebookEdit") return;
+
+    const { diff } = entry.change;
+    const hunk = computeHunks(diff.oldText, diff.newText)[hunkIndex];
+    if (!hunk) return;
+
+    const chosen = accepted ? hunk.newValue : hunk.oldValue;
+    const newOldText = diff.oldText.slice(0, hunk.oldStart) + chosen + diff.oldText.slice(hunk.oldEnd);
+    const newNewText = diff.newText.slice(0, hunk.newStart) + chosen + diff.newText.slice(hunk.newEnd);
+
+    // A brand-new file (existedBefore: false) whose one-and-only content
+    // ends up fully rejected converges on "" -- that means "this file
+    // shouldn't exist", same as the whole-item reject path below, not an
+    // empty file left behind on disk.
+    if (!diff.existedBefore && newOldText === "") {
+      await deleteFileIfExists(diff.filePath);
+    } else {
+      await writeTextFile(diff.filePath, newOldText);
+    }
+
+    entry.change = { ...entry.change, diff: { ...diff, oldText: newOldText, newText: newNewText } };
+
+    if (newOldText === newNewText) {
+      // Every hunk has now been decided one way or the other -- finalize
+      // like resolveItem, but the disk write above already applied the
+      // combined result, so there's nothing left to write here.
+      this.entries.delete(id);
+      entry.onExternallyResolved?.(true);
+      const resolved = this.pushHistory(entry.change, true);
+      this.emit("change");
+      this.emit("resolved", resolved);
+      return;
+    }
+
+    this.emit("change");
+  }
+
   /** Reverses a past Accept (restores pre-edit content) or Reject (re-applies
    *  the change that was rejected). Removes the entry from history. */
   async undo(historyId: number): Promise<void> {
     const idx = this.history.findIndex((h) => h.historyId === historyId);
     if (idx === -1) return;
     const [item] = this.history.splice(idx, 1);
+    if (!item) return;
 
     if (item.accepted) {
       await this.applyOldState(item.diff);
@@ -189,15 +251,13 @@ export class PendingChangesStore extends EventEmitter {
 
   private async applyOldState(diff: DiffResult): Promise<void> {
     if (!diff.existedBefore) {
-      await fs.unlink(diff.filePath).catch((err: NodeJS.ErrnoException) => {
-        if (err.code !== "ENOENT") throw err;
-      });
+      await deleteFileIfExists(diff.filePath);
       return;
     }
-    await fs.writeFile(diff.filePath, diff.revertText, "utf8");
+    await writeTextFile(diff.filePath, diff.revertText);
   }
 
   private async applyNewState(diff: DiffResult): Promise<void> {
-    await fs.writeFile(diff.filePath, diff.newText, "utf8");
+    await writeTextFile(diff.filePath, diff.newText);
   }
 }

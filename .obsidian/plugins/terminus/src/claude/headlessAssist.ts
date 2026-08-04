@@ -1,9 +1,6 @@
-import { execFile } from "child_process";
-import { existsSync } from "fs";
-import { promisify } from "util";
+import { fileExistsSync, execFileText, type ExecFileError } from "terminus-node-bridge";
 import { tryLoginShellWhich } from "../pty/shellDetect";
 
-const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 45_000;
 
 const CLAUDE_BIN_CANDIDATES = ["/usr/local/bin/claude", "/opt/homebrew/bin/claude"];
@@ -16,7 +13,7 @@ export async function resolveClaudeBin(): Promise<string> {
   if (loginShellPath) return loginShellPath;
 
   for (const candidate of CLAUDE_BIN_CANDIDATES) {
-    if (existsSync(candidate)) return candidate;
+    if (fileExistsSync(candidate)) return candidate;
   }
 
   return "claude";
@@ -27,21 +24,44 @@ interface ClaudeJsonResult {
   is_error?: boolean;
 }
 
+function isClaudeJsonResult(value: unknown): value is ClaudeJsonResult {
+  return typeof value === "object" && value !== null;
+}
+
 /** Fires a single, isolated, tool-free `claude -p` call -- independent of
  *  any interactive terminal session, so it works even when the terminal
  *  where the failure happened never ran `claude` at all. `--allowedTools
  *  ""` (verified empirically) keeps this a pure Q&A turn: no file/bash
  *  access, since this should never be able to take action on its own. */
 async function runHeadlessQuery(claudeBin: string, cwd: string, prompt: string): Promise<string> {
-  const { stdout } = await execFileAsync(
-    claudeBin,
-    ["-p", prompt, "--allowedTools", "", "--output-format", "json"],
-    { cwd, timeout: TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 }
-  );
+  let stdout: string;
+  try {
+    ({ stdout } = await execFileText(
+      claudeBin,
+      ["-p", prompt, "--allowedTools", "", "--output-format", "json"],
+      { cwd, timeout: TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 }
+    ));
+  } catch (err) {
+    // execFileText's own rejection .message is Node's "Command failed:
+    // <cmd> <args...>" format -- useless here since one of the args is the
+    // entire multi-KB prompt, so it surfaces as an unreadable wall of text
+    // with no indication of what actually went wrong (confirmed: a killed-
+    // by-timeout process produces exactly this shape -- .message with no
+    // stderr at all, verified by reproducing a timeout locally). Pull the
+    // actually diagnostic fields off the error instead.
+    const execErr = err as ExecFileError;
+    if (execErr.killed || execErr.signal) {
+      throw new Error(`claude timed out after ${TIMEOUT_MS / 1000}s with no response`);
+    }
+    const stderr = execErr.stderr?.trim();
+    throw new Error(`claude exited with code ${execErr.code ?? "unknown"}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`);
+  }
 
   let parsed: ClaudeJsonResult;
   try {
-    parsed = JSON.parse(stdout);
+    const rawParsed: unknown = JSON.parse(stdout);
+    if (!isClaudeJsonResult(rawParsed)) throw new Error("not an object");
+    parsed = rawParsed;
   } catch {
     throw new Error("claude returned unparseable output");
   }
@@ -106,16 +126,17 @@ function isFixSuggestion(value: unknown): value is FixSuggestion {
  *  exact JSON, then a {...} object embedded in surrounding prose. */
 function parseSuggestion(text: string): FixSuggestion | null {
   try {
-    const direct = JSON.parse(text);
+    const direct: unknown = JSON.parse(text);
     if (isFixSuggestion(direct)) return direct;
   } catch {
     // fall through to extraction
   }
 
   const match = text.match(/\{[\s\S]*\}/);
-  if (match) {
+  const matchedText = match?.[0];
+  if (matchedText !== undefined) {
     try {
-      const embedded = JSON.parse(match[0]);
+      const embedded: unknown = JSON.parse(matchedText);
       if (isFixSuggestion(embedded)) return embedded;
     } catch {
       // fall through to unstructured

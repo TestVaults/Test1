@@ -45,7 +45,7 @@ export function renderDiffBody(wrapper: HTMLElement, diff: DiffResult): void {
  *  scrollHeight -- shows which slice of the diff is currently on screen,
  *  not just where the changes are. Only relevant once content overflows;
  *  hidden when it doesn't (nothing to scroll to). */
-function renderMinimap(wrapper: HTMLElement, scrollBody: HTMLElement, lines: DiffLine[]): void {
+export function renderMinimap(wrapper: HTMLElement, scrollBody: HTMLElement, lines: DiffLine[]): void {
   if (lines.length === 0) return;
   const total = lines.length;
   const minimap = wrapper.createDiv({ cls: "terminus-diff-minimap" });
@@ -87,7 +87,7 @@ function renderDiffLine(container: HTMLElement, line: DiffLine): void {
         text: segment.text,
       });
     } else {
-      content.appendChild(document.createTextNode(segment.text));
+      content.appendChild(activeDocument.createTextNode(segment.text));
     }
   }
 }

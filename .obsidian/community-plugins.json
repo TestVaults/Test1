@@ -1,9 +1,9 @@
 [
   "asana-connect",
   "unhidden",
-  "terminal",
   "review-terminal",
   "vscode-editor",
+  "obsidian-git",
   "terminus",
-  "obsidian-git"
+  "cited"
 ]

@@ -2,8 +2,7 @@ import { ItemView, Notice, TFile, ViewStateResult, WorkspaceLeaf } from "obsidia
 import { IDecoration, Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { SerializeAddon } from "@xterm/addon-serialize";
-import { randomBytes } from "crypto";
-import * as path from "path";
+import { pathJoin, pathRelative, randomHex, getAllEnvVars, bufferToString } from "terminus-node-bridge";
 import { PtyProcess } from "../pty/PtyProcess";
 import { getShellIntegrationEnv } from "../pty/shellIntegration";
 import { buildDiff } from "../server/diff";
@@ -11,6 +10,7 @@ import { detectBacklinkBreakage } from "../backlinks/breakage";
 import { CommandTracker, TrackedCommand } from "../terminal/CommandTracker";
 import { CommandHelpModal } from "../modals/CommandHelpModal";
 import { PreToolUseHookPayload } from "../hooks/types";
+import { errorMessage } from "../util/errors";
 import type TerminusPlugin from "../main";
 
 export const TERMINUS_VIEW_TYPE = "terminus-view";
@@ -28,7 +28,7 @@ const SCROLLBACK_PERSIST_LINES = 1000;
  * monospace font to a literal string at runtime instead.
  */
 function resolveMonospaceFontStack(): string {
-  const resolved = getComputedStyle(document.body).getPropertyValue("--font-monospace").trim();
+  const resolved = getComputedStyle(activeDocument.body).getPropertyValue("--font-monospace").trim();
   const fallback = "Menlo, Monaco, Consolas, monospace";
   return resolved ? `${resolved}, ${fallback}` : fallback;
 }
@@ -50,10 +50,11 @@ export class TerminalView extends ItemView {
   // tied to the hook/review token (which is what actually keeps concurrent
   // terminals' PreToolUse traffic correctly isolated).
   private readonly terminalNumber: number;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(leaf: WorkspaceLeaf, private plugin: TerminusPlugin) {
     super(leaf);
-    this.token = randomBytes(16).toString("hex");
+    this.token = randomHex(16);
     this.terminalNumber = plugin.allocateTerminalNumber();
   }
 
@@ -100,9 +101,21 @@ export class TerminalView extends ItemView {
 
     this.term.onData((data) => this.pty?.write(data));
     this.term.onResize(({ cols, rows }) => this.pty?.resize(cols, rows));
+
+    // Obsidian's own ItemView.onResize() only fires for layout changes it
+    // recognizes as a leaf resize (e.g. a full window resize) -- it's not
+    // reliable for every actual size change of this container (sidebar
+    // toggles, other panels opening/closing, etc.), which lets the PTY's
+    // idea of cols/rows silently drift from what's really on screen. A
+    // ResizeObserver watches the container element itself, so it catches
+    // every real size change regardless of cause.
+    this.resizeObserver = new ResizeObserver(() => this.fitAddon?.fit());
+    this.resizeObserver.observe(xtermContainer);
   }
 
   async onClose(): Promise<void> {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     this.plugin.reviewServer.unregister(this.token);
     this.pty?.kill();
     this.commandTracker?.dispose();
@@ -166,8 +179,8 @@ export class TerminalView extends ItemView {
   private async startPty(): Promise<void> {
     const pythonBin = await this.plugin.getPython3Bin();
     const shell = this.plugin.getUserShell();
-    const resourcesDir = path.join(this.plugin.getPluginDir(), "resources");
-    const helperPath = path.join(resourcesDir, "pty_helper.py");
+    const resourcesDir = pathJoin(this.plugin.getPluginDir(), "resources");
+    const helperPath = pathJoin(resourcesDir, "pty_helper.py");
     const port = this.plugin.reviewServer.getPort();
 
     this.pty = new PtyProcess({
@@ -178,7 +191,7 @@ export class TerminalView extends ItemView {
       cols: this.term?.cols ?? 80,
       rows: this.term?.rows ?? 24,
       env: {
-        ...process.env,
+        ...getAllEnvVars(),
         TERM: "xterm-256color",
         TERMINUS_HOOK_PORT: String(port),
         TERMINUS_HOOK_TOKEN: this.token,
@@ -186,9 +199,9 @@ export class TerminalView extends ItemView {
       },
     });
 
-    this.pty.on("data", (chunk: Buffer) => this.term?.write(chunk.toString("utf8")));
+    this.pty.on("data", (chunk: Buffer) => this.term?.write(bufferToString(chunk)));
     this.pty.on("stderr", (text: string) => new Notice(`Terminus: ${text.trim()}`));
-    this.pty.on("error", (err: Error) => new Notice(`Terminus: PTY error: ${err.message}`));
+    this.pty.on("error", (err) => new Notice(`Terminus: PTY error: ${errorMessage(err)}`));
     this.pty.on("exit", ({ code }: { code: number | null }) => {
       this.term?.write(`\r\n[process exited${code !== null ? ` with code ${code}` : ""}]\r\n`);
     });
@@ -242,7 +255,7 @@ export class TerminalView extends ItemView {
       el.textContent = "⚠";
       if (!listenerBound) {
         listenerBound = true;
-        el.addEventListener("click", () => this.onFailureBadgeClick(cmd));
+        el.addEventListener("click", () => void this.onFailureBadgeClick(cmd));
       }
     });
   }
@@ -296,7 +309,7 @@ export class TerminalView extends ItemView {
    *  (first oldText vs latest newText) so a multi-edit turn is checked as a
    *  whole, not edit-by-edit. */
   private async checkBacklinkBreakage(absoluteFilePath: string): Promise<void> {
-    const relPath = path.relative(this.plugin.getVaultBasePath(), absoluteFilePath);
+    const relPath = pathRelative(this.plugin.getVaultBasePath(), absoluteFilePath);
     const file = this.app.vault.getAbstractFileByPath(relPath);
     if (!(file instanceof TFile)) return;
 

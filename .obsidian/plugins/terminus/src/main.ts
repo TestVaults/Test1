@@ -1,17 +1,19 @@
 import { Menu, Notice, Plugin, WorkspaceLeaf } from "obsidian";
-import * as path from "path";
+import { pathBasename, pathJoin } from "terminus-node-bridge";
 import { ReviewServer } from "./server/ReviewServer";
 import { provisionClaudeSettings, getVaultBasePath, getHookBridgePath } from "./hooks/provisionSettings";
 import { resolvePython3, resolveUserShell } from "./pty/shellDetect";
 import { resolveClaudeBin } from "./claude/headlessAssist";
 import { TERMINUS_VIEW_TYPE, TerminalView } from "./views/TerminalView";
 import { PENDING_CHANGES_VIEW_TYPE, PendingChangesView } from "./views/PendingChangesView";
+import { DIFF_SPLIT_VIEW_TYPE, DiffSplitView } from "./views/DiffSplitView";
 import { PendingChangesStore, ResolvedChange } from "./state/PendingChangesStore";
 import { ActionLog } from "./state/ActionLog";
 import { ActionLogModal } from "./modals/ActionLogModal";
 import { ConfirmModal } from "./modals/ConfirmModal";
 import { computeDiffStats } from "./diff/renderDiff";
 import { inlineDiffDecorations, inlineDiffField } from "./editor/inlineDiff";
+import { errorMessage } from "./util/errors";
 import {
   DEFAULT_SETTINGS,
   MAX_FONT_SIZE,
@@ -34,13 +36,13 @@ export default class TerminusPlugin extends Plugin {
   private python3Bin: string | null = null;
   private claudeBin: string | null = null;
   private nextTerminalNumber = 1;
-  private revealPendingChangesTimer: ReturnType<typeof setTimeout> | null = null;
+  private revealPendingChangesTimer: number | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new TerminusSettingTab(this.app, this));
 
-    this.actionLog = new ActionLog(path.join(this.getPluginDir(), "action-log.json"));
+    this.actionLog = new ActionLog(pathJoin(this.getPluginDir(), "action-log.json"));
     await this.actionLog.load();
     this.pendingChangesStore.on("resolved", (item: ResolvedChange) => {
       const stats = computeDiffStats(item.diff);
@@ -61,8 +63,8 @@ export default class TerminusPlugin extends Plugin {
     // stealing focus mid-turn.
     this.pendingChangesStore.on("recorded", () => {
       if (!this.settings.autoRevealPendingChanges) return;
-      if (this.revealPendingChangesTimer) clearTimeout(this.revealPendingChangesTimer);
-      this.revealPendingChangesTimer = setTimeout(() => {
+      if (this.revealPendingChangesTimer) window.clearTimeout(this.revealPendingChangesTimer);
+      this.revealPendingChangesTimer = window.setTimeout(() => {
         this.revealPendingChangesTimer = null;
         void this.revealPendingChangesView();
       }, this.settings.autoRevealDelayMs);
@@ -83,14 +85,15 @@ export default class TerminusPlugin extends Plugin {
 
     this.registerView(TERMINUS_VIEW_TYPE, (leaf) => new TerminalView(leaf, this));
     this.registerView(PENDING_CHANGES_VIEW_TYPE, (leaf) => new PendingChangesView(leaf, this));
+    this.registerView(DIFF_SPLIT_VIEW_TYPE, (leaf) => new DiffSplitView(leaf, this));
 
     this.addRibbonIcon("square-terminal", "Open Terminus", (evt) => {
       void this.openTerminal(evt);
     });
 
     this.addCommand({
-      id: "open-terminus",
-      name: "Open Terminus",
+      id: "open",
+      name: "Open",
       callback: () => void this.openTerminal(),
     });
 
@@ -103,32 +106,27 @@ export default class TerminusPlugin extends Plugin {
     this.addCommand({
       id: "increase-terminal-font-size",
       name: "Increase terminal font size",
-      hotkeys: [{ modifiers: ["Mod"], key: "=" }],
       callback: () => void this.setFontSize(this.settings.fontSize + 1),
     });
     this.addCommand({
       id: "decrease-terminal-font-size",
       name: "Decrease terminal font size",
-      hotkeys: [{ modifiers: ["Mod"], key: "-" }],
       callback: () => void this.setFontSize(this.settings.fontSize - 1),
     });
     this.addCommand({
       id: "reset-terminal-font-size",
       name: "Reset terminal font size",
-      hotkeys: [{ modifiers: ["Mod"], key: "0" }],
       callback: () => void this.setFontSize(DEFAULT_SETTINGS.fontSize),
     });
 
     this.addCommand({
       id: "accept-oldest-pending-change",
       name: "Accept oldest pending change",
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "Enter" }],
       callback: () => void this.resolveOldestPendingChange(true),
     });
     this.addCommand({
       id: "reject-oldest-pending-change",
       name: "Reject oldest pending change",
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "Backspace" }],
       callback: () => void this.resolveOldestPendingChange(false),
     });
     this.addCommand({
@@ -154,13 +152,14 @@ export default class TerminusPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => void this.revealPendingChangesView());
   }
 
-  async onunload(): Promise<void> {
-    if (this.revealPendingChangesTimer) clearTimeout(this.revealPendingChangesTimer);
-    await this.reviewServer.stop();
+  onunload(): void {
+    if (this.revealPendingChangesTimer) window.clearTimeout(this.revealPendingChangesTimer);
+    void this.reviewServer.stop();
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = (await this.loadData()) as Partial<TerminusSettings> | null;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
   }
 
   async saveSettings(): Promise<void> {
@@ -200,7 +199,7 @@ export default class TerminusPlugin extends Plugin {
     try {
       await this.pendingChangesStore.resolveAll(accepted);
     } catch (err) {
-      new Notice(`Terminus: failed to ${accepted ? "keep" : "revert"} all changes: ${(err as Error).message}`);
+      new Notice(`Terminus: failed to ${accepted ? "keep" : "revert"} all changes: ${errorMessage(err)}`);
     }
   }
 
@@ -212,9 +211,9 @@ export default class TerminusPlugin extends Plugin {
     }
     try {
       await this.pendingChangesStore.resolveItem(oldest.id, accepted);
-      new Notice(`Terminus: ${accepted ? "kept" : "reverted"} ${path.basename(oldest.diff.filePath)}`);
+      new Notice(`Terminus: ${accepted ? "kept" : "reverted"} ${pathBasename(oldest.diff.filePath)}`);
     } catch (err) {
-      new Notice(`Terminus: failed to ${accepted ? "keep" : "revert"} ${path.basename(oldest.diff.filePath)}: ${(err as Error).message}`);
+      new Notice(`Terminus: failed to ${accepted ? "keep" : "revert"} ${pathBasename(oldest.diff.filePath)}: ${errorMessage(err)}`);
     }
   }
 
@@ -246,7 +245,7 @@ export default class TerminusPlugin extends Plugin {
   }
 
   getPluginDir(): string {
-    return path.join(this.getVaultBasePath(), this.app.vault.configDir, "plugins", this.manifest.id);
+    return pathJoin(this.getVaultBasePath(), this.app.vault.configDir, "plugins", this.manifest.id);
   }
 
   async revealPendingChangesView(): Promise<void> {
@@ -256,7 +255,7 @@ export default class TerminusPlugin extends Plugin {
       leaf = workspace.getRightLeaf(false) ?? workspace.getLeaf("tab");
       await leaf.setViewState({ type: PENDING_CHANGES_VIEW_TYPE, active: true });
     }
-    workspace.revealLeaf(leaf);
+    await workspace.revealLeaf(leaf);
   }
 
   /** Ribbon clicks always carry a MouseEvent to anchor a placement menu to;
@@ -308,7 +307,7 @@ export default class TerminusPlugin extends Plugin {
         break;
     }
     await leaf.setViewState({ type: TERMINUS_VIEW_TYPE, active: true });
-    workspace.revealLeaf(leaf);
+    await workspace.revealLeaf(leaf);
   }
 
   allocateTerminalNumber(): number {
