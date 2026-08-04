@@ -60,6 +60,21 @@ var SyncEngine = class {
   updateSettings(s) {
     this.settings = s;
   }
+  /**
+   * Of `paths`, the ones the app's ignore list currently excludes. Lets the
+   * save notice distinguish "nothing to send" from "your edit was deliberately
+   * kept on this device", which otherwise both read as "up to date".
+   */
+  async filterIgnored(paths) {
+    var _a;
+    if (paths.length === 0)
+      return [];
+    const config = await this.readConfig();
+    const ignoredPaths = (_a = config == null ? void 0 : config.ignoredPaths) != null ? _a : [];
+    if (ignoredPaths.length === 0)
+      return [];
+    return paths.filter((p) => isIgnored(p, ignoredPaths));
+  }
   // ---------- Public API -----------------------------------------------------
   async pull() {
     const ctx = await this.context();
@@ -473,6 +488,7 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
     this.settings = DEFAULT_SETTINGS;
     this.intervalHandle = null;
     this.saveDebounce = null;
+    this.pendingModified = /* @__PURE__ */ new Set();
   }
   async onload() {
     var _a, _b, _c;
@@ -505,6 +521,7 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
       window.clearInterval(this.intervalHandle);
     if (this.saveDebounce !== null)
       window.clearTimeout(this.saveDebounce);
+    this.pendingModified.clear();
   }
   scheduleInterval() {
     if (this.intervalHandle !== null) {
@@ -531,20 +548,37 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
   }
   registerSaveHandler() {
     this.registerEvent(
-      this.app.vault.on("modify", () => {
+      this.app.vault.on("modify", (file) => {
         if (!this.settings.syncOnSave)
           return;
+        this.pendingModified.add(file.path);
         if (this.saveDebounce !== null)
           window.clearTimeout(this.saveDebounce);
         this.saveDebounce = window.setTimeout(async () => {
           this.saveDebounce = null;
+          const modified = [...this.pendingModified];
+          this.pendingModified.clear();
+          const untracked = await this.engine.filterIgnored(modified);
           const result = await this.engine.push();
           if (this.settings.showSyncNotifications) {
-            this.showNotice(result.pushed > 0 ? `SyncSimply: ${result.pushed} pushed` : "SyncSimply: up to date");
+            this.showNotice(this.formatSaveResult(result, untracked));
           }
         }, 3e3);
       })
     );
+  }
+  formatSaveResult(result, untracked) {
+    var _a;
+    const parts = [];
+    if (result.pushed > 0)
+      parts.push(`${result.pushed} pushed`);
+    if (untracked.length > 0) {
+      const name = ((_a = untracked[0].split("/").pop()) != null ? _a : untracked[0]).replace(/\.md$/, "");
+      parts.push(
+        untracked.length === 1 ? `${name} saved on this device only \u2014 not tracked` : `${untracked.length} files saved on this device only \u2014 not tracked`
+      );
+    }
+    return parts.length > 0 ? `SyncSimply: ${parts.join(" \xB7 ")}` : "SyncSimply: up to date";
   }
   showNotice(msg) {
     new import_obsidian3.Notice(msg, 4e3);
