@@ -70,6 +70,8 @@ var isIgnored = (path, ignoredPaths) => ignoredPaths.some((p) => path === p || p
 var skip = (path, ignoredPaths = []) => isAlwaysExcluded(path) || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path) || isIgnored(path, ignoredPaths);
 var GH_API = "https://api.github.com";
 var GH_RAW = "https://raw.githubusercontent.com";
+var IDLE = { pushed: 0, pulled: 0, conflicts: 0 };
+var blockedResult = (blocked) => ({ ...IDLE, blocked });
 var SyncEngine = class {
   constructor(app, settings, manifest, onManifestChange) {
     this.syncing = false;
@@ -102,38 +104,36 @@ var SyncEngine = class {
   // ---------- Public API -----------------------------------------------------
   async pull() {
     const ctx = await this.context();
-    if (!ctx)
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+    if (!ctx.ok)
+      return blockedResult(ctx.reason);
     try {
       const { pulled, conflicts } = await this.doPull(ctx);
       return { pushed: 0, pulled, conflicts: conflicts.length };
     } catch (e) {
       this.notify(`SyncSimply pull failed: ${e.message}`);
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+      return IDLE;
     }
   }
   async push() {
     const ctx = await this.context();
-    if (!ctx)
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+    if (!ctx.ok)
+      return blockedResult(ctx.reason);
     try {
       const pushed = await this.doPush(ctx);
       return { pushed, pulled: 0, conflicts: 0 };
     } catch (e) {
       this.notify(`SyncSimply push failed: ${e.message}`);
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+      return IDLE;
     }
   }
   async sync() {
     if (this.syncing)
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+      return IDLE;
     this.syncing = true;
-    const ctx = await this.context();
-    if (!ctx) {
-      this.syncing = false;
-      return { pushed: 0, pulled: 0, conflicts: 0 };
-    }
     try {
+      const ctx = await this.context();
+      if (!ctx.ok)
+        return blockedResult(ctx.reason);
       const { pulled, conflicts } = await this.doPull(ctx);
       let pushed = 0;
       if (conflicts.length === 0)
@@ -141,7 +141,7 @@ var SyncEngine = class {
       return { pushed, pulled, conflicts: conflicts.length };
     } catch (e) {
       this.notify(`SyncSimply sync failed: ${e.message}`);
-      return { pushed: 0, pulled: 0, conflicts: 0 };
+      return IDLE;
     } finally {
       this.syncing = false;
     }
@@ -413,16 +413,17 @@ var SyncEngine = class {
     return res.arrayBuffer;
   }
   // ---------- Misc ------------------------------------------------------------
+  // Returns the reason rather than notifying here, so each caller decides
+  // whether it's the right moment to interrupt the user — a save-triggered push
+  // says it in its own toast, while a background pull stays quiet.
   async context() {
     const token = this.settings.githubToken;
     if (!token)
-      return null;
+      return { ok: false, reason: "no-token" };
     const config = await this.readConfig();
-    if (!config) {
-      this.notify("SyncSimply: vault not set up. Clone a repo in the SyncSimply app first.");
-      return null;
-    }
-    return { config, token };
+    if (!config)
+      return { ok: false, reason: "not-set-up" };
+    return { ok: true, config, token };
   }
   async readConfig() {
     try {
@@ -572,7 +573,11 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
       }
     });
     if (this.settings.syncOnOpen) {
-      this.app.workspace.onLayoutReady(() => this.engine.pull());
+      this.app.workspace.onLayoutReady(async () => {
+        const result = await this.engine.pull();
+        if (result.blocked)
+          this.showNotice(this.blockedMessage(result.blocked));
+      });
     }
     this.scheduleInterval();
     this.registerCloseHandler();
@@ -631,6 +636,8 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
   }
   formatSaveResult(result, untracked) {
     var _a;
+    if (result.blocked)
+      return this.blockedMessage(result.blocked);
     const parts = [];
     if (result.pushed > 0)
       parts.push(`${result.pushed} pushed`);
@@ -645,7 +652,15 @@ var SyncSimplyPlugin = class extends import_obsidian3.Plugin {
   showNotice(msg) {
     new import_obsidian3.Notice(msg, 4e3);
   }
+  // "Up to date" must only ever mean the engine ran and found nothing. When it
+  // couldn't run, say why — otherwise an unconfigured plugin looks like a
+  // working one for as long as the user keeps typing.
+  blockedMessage(reason) {
+    return reason === "no-token" ? "SyncSimply: not syncing \u2014 add your GitHub token in plugin settings" : "SyncSimply: not syncing \u2014 this vault isn't set up. Add it in the SyncSimply app first";
+  }
   formatResult(result) {
+    if (result.blocked)
+      return this.blockedMessage(result.blocked);
     const parts = [];
     if (result.pushed > 0)
       parts.push(`${result.pushed} pushed`);
