@@ -68,6 +68,11 @@ function shouldDescend(folder) {
 }
 var isIgnored = (path, ignoredPaths) => ignoredPaths.some((p) => path === p || path.startsWith(p + "/"));
 var skip = (path, ignoredPaths = []) => isAlwaysExcluded(path) || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path) || isIgnored(path, ignoredPaths);
+function deletionCandidates(files, presentPaths, ignoredPaths, exclude) {
+  return Object.keys(files).filter(
+    (p) => !presentPaths.has(p) && !skip(p, ignoredPaths) && !(exclude == null ? void 0 : exclude.has(p))
+  );
+}
 var GH_API = "https://api.github.com";
 var GH_RAW = "https://raw.githubusercontent.com";
 var IDLE = { pushed: 0, pulled: 0, conflicts: 0 };
@@ -171,9 +176,7 @@ var SyncEngine = class {
       return ((_a2 = this.manifest.files[e.path]) == null ? void 0 : _a2.blobSha) !== e.sha;
     });
     const remotePathSet = new Set(remoteBlobs.map((e) => e.path));
-    const remoteDeleted = Object.keys(this.manifest.files).filter(
-      (p) => !remotePathSet.has(p) && !skip(p, ignoredPaths)
-    );
+    const remoteDeleted = deletionCandidates(this.manifest.files, remotePathSet, ignoredPaths);
     const localMod = /* @__PURE__ */ new Set();
     for (const path of await this.vaultFilePaths(ignoredPaths)) {
       const prev = this.manifest.files[path];
@@ -235,9 +238,7 @@ var SyncEngine = class {
       }
     }
     const localPaths = new Set(localFilePaths);
-    const maybeDeleted = Object.keys(this.manifest.files).filter(
-      (p) => !localPaths.has(p) && !unresolved.has(p) && !skip(p, ignoredPaths)
-    );
+    const maybeDeleted = deletionCandidates(this.manifest.files, localPaths, ignoredPaths, unresolved);
     const deleted = [];
     for (const path of maybeDeleted) {
       if (!await this.app.vault.adapter.exists(path))
