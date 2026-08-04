@@ -42,8 +42,32 @@ function toBase64(buf) {
   return btoa(s);
 }
 var OBSIDIAN_ALLOWED = (path) => path === ".obsidian/appearance.json" || path.startsWith(".obsidian/themes/") || path.startsWith(".obsidian/snippets/");
+function isAlwaysExcluded(p) {
+  const segs = p.split("/");
+  if (segs.some(
+    (s) => s === ".trash" || s === ".git" || s === ".syncsimply" || s === "node_modules" || s === ".Spotlight-V100" || s === ".fseventsd" || s === ".TemporaryItems" || s === ".DocumentRevisions-V100" || s === ".makemd" || s === ".smart-env" || s === ".copilot-index"
+  ))
+    return true;
+  const filename = segs[segs.length - 1];
+  if (filename === ".DS_Store" || filename === "Thumbs.db" || filename === "desktop.ini")
+    return true;
+  if (filename.startsWith("~$") || filename.startsWith(".~lock."))
+    return true;
+  if (filename.endsWith("~"))
+    return true;
+  if (filename.startsWith(".") && filename.endsWith(".icloud"))
+    return true;
+  return false;
+}
+function shouldDescend(folder) {
+  if (isAlwaysExcluded(folder))
+    return false;
+  if (folder !== ".obsidian" && !folder.startsWith(".obsidian/"))
+    return true;
+  return folder === ".obsidian" || folder === ".obsidian/themes" || folder.startsWith(".obsidian/themes/") || folder === ".obsidian/snippets" || folder.startsWith(".obsidian/snippets/");
+}
 var isIgnored = (path, ignoredPaths) => ignoredPaths.some((p) => path === p || path.startsWith(p + "/"));
-var skip = (path, ignoredPaths = []) => path.startsWith(".syncsimply/") || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path) || isIgnored(path, ignoredPaths);
+var skip = (path, ignoredPaths = []) => isAlwaysExcluded(path) || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path) || isIgnored(path, ignoredPaths);
 var GH_API = "https://api.github.com";
 var GH_RAW = "https://raw.githubusercontent.com";
 var SyncEngine = class {
@@ -151,13 +175,13 @@ var SyncEngine = class {
       (p) => !remotePathSet.has(p) && !skip(p, ignoredPaths)
     );
     const localMod = /* @__PURE__ */ new Set();
-    for (const file of this.vaultFiles(ignoredPaths)) {
-      const prev = this.manifest.files[file.path];
+    for (const path of await this.vaultFilePaths(ignoredPaths)) {
+      const prev = this.manifest.files[path];
       if (!prev)
         continue;
-      const content = await this.app.vault.readBinary(file);
+      const content = await this.app.vault.adapter.readBinary(path);
       if (hashContent(content) !== prev.contentHash)
-        localMod.add(file.path);
+        localMod.add(path);
     }
     const conflicts = [];
     const updatedFiles = { ...this.manifest.files };
@@ -198,21 +222,27 @@ var SyncEngine = class {
     const unresolved = new Set(this.manifest.conflicts);
     const changed = [];
     const changedPaths = [];
-    for (const file of this.vaultFiles(ignoredPaths)) {
-      if (unresolved.has(file.path))
+    const localFilePaths = await this.vaultFilePaths(ignoredPaths);
+    for (const path of localFilePaths) {
+      if (unresolved.has(path))
         continue;
-      const content = await this.app.vault.readBinary(file);
+      const content = await this.app.vault.adapter.readBinary(path);
       const hash = hashContent(content);
-      const prev = this.manifest.files[file.path];
+      const prev = this.manifest.files[path];
       if (!prev || prev.contentHash !== hash) {
-        changed.push({ path: file.path, content });
-        changedPaths.push(file.path);
+        changed.push({ path, content });
+        changedPaths.push(path);
       }
     }
-    const localPaths = new Set(this.vaultFiles(ignoredPaths).map((f) => f.path));
-    const deleted = Object.keys(this.manifest.files).filter(
+    const localPaths = new Set(localFilePaths);
+    const maybeDeleted = Object.keys(this.manifest.files).filter(
       (p) => !localPaths.has(p) && !unresolved.has(p) && !skip(p, ignoredPaths)
     );
+    const deleted = [];
+    for (const path of maybeDeleted) {
+      if (!await this.app.vault.adapter.exists(path))
+        deleted.push(path);
+    }
     if (changed.length === 0 && deleted.length === 0)
       return 0;
     const liveRef = await this.ghGet(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token);
@@ -279,15 +309,42 @@ var SyncEngine = class {
       remoteTree.tree.filter((e) => e.type === "blob" && !!e.path && !skip(e.path, ignoredPaths)).map((e) => [e.path, e.sha])
     );
     const files = {};
-    for (const file of this.vaultFiles(ignoredPaths)) {
-      const content = await this.app.vault.readBinary(file);
-      files[file.path] = { blobSha: (_b = remoteMap.get(file.path)) != null ? _b : "", contentHash: hashContent(content) };
+    for (const path of await this.vaultFilePaths(ignoredPaths)) {
+      const content = await this.app.vault.adapter.readBinary(path);
+      files[path] = { blobSha: (_b = remoteMap.get(path)) != null ? _b : "", contentHash: hashContent(content) };
     }
     return { headSha, files, conflicts: [] };
   }
   // ---------- Vault I/O -------------------------------------------------------
-  vaultFiles(ignoredPaths = []) {
-    return this.app.vault.getFiles().filter((f) => !skip(f.path, ignoredPaths));
+  /**
+   * Every syncable file on disk, walked through the vault adapter.
+   *
+   * Deliberately not vault.getFiles(): that returns Obsidian's *index*, which
+   * never lists dotfiles at the vault root (.gitignore, .gitattributes) or
+   * anything under .obsidian — including the appearance.json / themes / snippets
+   * that skip() explicitly allows. Those files still reached the manifest via
+   * pull, so the index's blind spot made them look locally deleted and pushed a
+   * deletion for files sitting right there on disk. The adapter sees what the
+   * filesystem sees, matching walkLocalDir on the app side.
+   *
+   * Errors propagate: a failed listing must abort the sync, because an empty
+   * result here would read as "the user deleted everything".
+   */
+  async vaultFilePaths(ignoredPaths = []) {
+    const out = [];
+    const walk = async (dir) => {
+      const { files, folders } = await this.app.vault.adapter.list(dir);
+      for (const f of files) {
+        if (!skip(f, ignoredPaths))
+          out.push(f);
+      }
+      for (const d of folders) {
+        if (shouldDescend(d))
+          await walk(d);
+      }
+    };
+    await walk("/");
+    return out;
   }
   async writeVaultFile(path, content) {
     const existing = this.app.vault.getAbstractFileByPath(path);
@@ -302,8 +359,13 @@ var SyncEngine = class {
   }
   async deleteVaultFile(path) {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (file)
+    if (file) {
       await this.app.vault.trash(file, false);
+      return;
+    }
+    if (await this.app.vault.adapter.exists(path)) {
+      await this.app.vault.adapter.trashLocal(path);
+    }
   }
   // ---------- GitHub API helpers ----------------------------------------------
   async ghFetch(method, path, token, body) {

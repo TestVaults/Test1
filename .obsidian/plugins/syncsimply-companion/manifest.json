@@ -1,7 +1,7 @@
 {
   "id": "syncsimply-companion",
   "name": "SyncSimply",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "minAppVersion": "1.4.0",
   "description": "Mobile companion for SyncSimply. Automatically syncs your vault with GitHub while you write on iOS.",
   "author": "SyncSimply",
