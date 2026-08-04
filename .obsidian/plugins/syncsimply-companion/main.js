@@ -42,7 +42,8 @@ function toBase64(buf) {
   return btoa(s);
 }
 var OBSIDIAN_ALLOWED = (path) => path === ".obsidian/appearance.json" || path.startsWith(".obsidian/themes/") || path.startsWith(".obsidian/snippets/");
-var skip = (path) => path.startsWith(".syncsimply/") || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path);
+var isIgnored = (path, ignoredPaths) => ignoredPaths.some((p) => path === p || path.startsWith(p + "/"));
+var skip = (path, ignoredPaths = []) => path.startsWith(".syncsimply/") || path.startsWith(".obsidian/") && !OBSIDIAN_ALLOWED(path) || isIgnored(path, ignoredPaths);
 var GH_API = "https://api.github.com";
 var GH_RAW = "https://raw.githubusercontent.com";
 var SyncEngine = class {
@@ -108,8 +109,10 @@ var SyncEngine = class {
   }
   // ---------- Core pull ------------------------------------------------------
   async doPull(ctx) {
+    var _a;
     const { config, token } = ctx;
     const { owner, repo, branch } = config;
+    const ignoredPaths = (_a = config.ignoredPaths) != null ? _a : [];
     const ref = await this.ghGet(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token);
     const remoteSha = ref.object.sha;
     if (!this.manifest) {
@@ -122,16 +125,18 @@ var SyncEngine = class {
     const remoteCommit = await this.ghGet(`/repos/${owner}/${repo}/git/commits/${remoteSha}`, token);
     const remoteTree = await this.ghGet(`/repos/${owner}/${repo}/git/trees/${remoteCommit.tree.sha}?recursive=1`, token);
     const remoteBlobs = remoteTree.tree.filter(
-      (e) => e.type === "blob" && !!e.path && !skip(e.path)
+      (e) => e.type === "blob" && !!e.path && !skip(e.path, ignoredPaths)
     );
     const remoteChanged = remoteBlobs.filter((e) => {
-      var _a;
-      return ((_a = this.manifest.files[e.path]) == null ? void 0 : _a.blobSha) !== e.sha;
+      var _a2;
+      return ((_a2 = this.manifest.files[e.path]) == null ? void 0 : _a2.blobSha) !== e.sha;
     });
     const remotePathSet = new Set(remoteBlobs.map((e) => e.path));
-    const remoteDeleted = Object.keys(this.manifest.files).filter((p) => !remotePathSet.has(p));
+    const remoteDeleted = Object.keys(this.manifest.files).filter(
+      (p) => !remotePathSet.has(p) && !skip(p, ignoredPaths)
+    );
     const localMod = /* @__PURE__ */ new Set();
-    for (const file of this.vaultFiles()) {
+    for (const file of this.vaultFiles(ignoredPaths)) {
       const prev = this.manifest.files[file.path];
       if (!prev)
         continue;
@@ -169,14 +174,16 @@ var SyncEngine = class {
   }
   // ---------- Core push ------------------------------------------------------
   async doPush(ctx, retried = false) {
+    var _a;
     const { config, token } = ctx;
     const { owner, repo, branch } = config;
+    const ignoredPaths = (_a = config.ignoredPaths) != null ? _a : [];
     if (!this.manifest)
       return 0;
     const unresolved = new Set(this.manifest.conflicts);
     const changed = [];
     const changedPaths = [];
-    for (const file of this.vaultFiles()) {
+    for (const file of this.vaultFiles(ignoredPaths)) {
       if (unresolved.has(file.path))
         continue;
       const content = await this.app.vault.readBinary(file);
@@ -187,8 +194,10 @@ var SyncEngine = class {
         changedPaths.push(file.path);
       }
     }
-    const localPaths = new Set(this.vaultFiles().map((f) => f.path));
-    const deleted = Object.keys(this.manifest.files).filter((p) => !localPaths.has(p) && !unresolved.has(p));
+    const localPaths = new Set(this.vaultFiles(ignoredPaths).map((f) => f.path));
+    const deleted = Object.keys(this.manifest.files).filter(
+      (p) => !localPaths.has(p) && !unresolved.has(p) && !skip(p, ignoredPaths)
+    );
     if (changed.length === 0 && deleted.length === 0)
       return 0;
     const liveRef = await this.ghGet(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token);
@@ -246,23 +255,24 @@ var SyncEngine = class {
   }
   // ---------- Bootstrap (first run) ------------------------------------------
   async bootstrap(config, token, headSha) {
-    var _a;
+    var _a, _b;
     const { owner, repo } = config;
+    const ignoredPaths = (_a = config.ignoredPaths) != null ? _a : [];
     const headCommit = await this.ghGet(`/repos/${owner}/${repo}/git/commits/${headSha}`, token);
     const remoteTree = await this.ghGet(`/repos/${owner}/${repo}/git/trees/${headCommit.tree.sha}?recursive=1`, token);
     const remoteMap = new Map(
-      remoteTree.tree.filter((e) => e.type === "blob" && !!e.path && !skip(e.path)).map((e) => [e.path, e.sha])
+      remoteTree.tree.filter((e) => e.type === "blob" && !!e.path && !skip(e.path, ignoredPaths)).map((e) => [e.path, e.sha])
     );
     const files = {};
-    for (const file of this.vaultFiles()) {
+    for (const file of this.vaultFiles(ignoredPaths)) {
       const content = await this.app.vault.readBinary(file);
-      files[file.path] = { blobSha: (_a = remoteMap.get(file.path)) != null ? _a : "", contentHash: hashContent(content) };
+      files[file.path] = { blobSha: (_b = remoteMap.get(file.path)) != null ? _b : "", contentHash: hashContent(content) };
     }
     return { headSha, files, conflicts: [] };
   }
   // ---------- Vault I/O -------------------------------------------------------
-  vaultFiles() {
-    return this.app.vault.getFiles().filter((f) => !skip(f.path));
+  vaultFiles(ignoredPaths = []) {
+    return this.app.vault.getFiles().filter((f) => !skip(f.path, ignoredPaths));
   }
   async writeVaultFile(path, content) {
     const existing = this.app.vault.getAbstractFileByPath(path);
